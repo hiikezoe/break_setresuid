@@ -61,7 +61,6 @@ inject_value (unsigned int address, int value,
   params.size = 2;
   params.num_bytes_ptr = (void*)delayed_rsp_id_address;
   ret = ioctl(fd, DIAG_IOCTL_GET_DELAYED_RSP_ID, &params);
-  printf("ptr = %04x\n", ptr);
   if (ret < 0) {
     printf("failed to ioctl due to %s.\n", strerror(errno));
     return ret;
@@ -73,7 +72,6 @@ inject_value (unsigned int address, int value,
   params.num_bytes_ptr = &num;
 
   ret = ioctl(fd, DIAG_IOCTL_GET_DELAYED_RSP_ID, &params);
-  printf("ptr = %04x\n", ptr);
   if (ret < 0) {
     printf("failed to ioctl due to %s.\n", strerror(errno));
     return ret;
