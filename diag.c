@@ -29,13 +29,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
-#include <signal.h>
 #include <stdlib.h>
-#include <dlfcn.h>
-#include <elf.h>
-#include <sys/system_properties.h>
 #include <fcntl.h>
-#include <stdarg.h>
 
 #include "diag.h"
 
