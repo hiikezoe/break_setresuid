@@ -42,46 +42,72 @@ struct diagpkt_delay_params {
 };
 
 static int
+send_delay_params(int fd, struct diagpkt_delay_params *params)
+{
+  int ret;
+  ret = ioctl(fd, DIAG_IOCTL_GET_DELAYED_RSP_ID, params);
+  if (ret < 0) {
+    printf("failed to ioctl due to %s.\n", strerror(errno));
+  }
+  return ret;
+}
+
+static int
+reset_delayed_rsp_id(int fd, unsigned int delayed_rsp_id_address)
+{
+  struct diagpkt_delay_params params;
+  params.size = 2;
+  params.num_bytes_ptr = (void *)delayed_rsp_id_address;
+
+  return send_delay_params(fd, &params);
+}
+
+static int
+confirm_delayed_rsp_id(int fd)
+{
+  int ret;
+  int delayed_rsp_id;
+  struct diagpkt_delay_params params;
+
+  params.rsp_ptr = &delayed_rsp_id;
+  params.size = 2;
+
+  ret = send_delay_params(fd, &params);
+  if (ret < 0) {
+    return ret;
+  }
+  return delayed_rsp_id;
+}
+
+static int
 inject_value (unsigned int address, int value,
               int fd, unsigned int delayed_rsp_id_address)
 {
-  uint16_t ptr;
-  int i;
-  int num;
+  uint16_t delayed_rsp_id_value;
+  int i, loop_count;
   int ret;
-  struct diagpkt_delay_params params;
 
-  ptr = 0;
-  params.rsp_ptr = &ptr;
-  params.size = 2;
-  params.num_bytes_ptr = (void*)delayed_rsp_id_address;
-  ret = ioctl(fd, DIAG_IOCTL_GET_DELAYED_RSP_ID, &params);
+  ret = reset_delayed_rsp_id(fd, delayed_rsp_id_address);
   if (ret < 0) {
-    printf("failed to ioctl due to %s.\n", strerror(errno));
     return ret;
   }
 
-  ptr = 0;
-  params.rsp_ptr = &ptr;
-  params.size = 2;
-  params.num_bytes_ptr = &num;
-
-  ret = ioctl(fd, DIAG_IOCTL_GET_DELAYED_RSP_ID, &params);
+  ret = confirm_delayed_rsp_id(fd);
   if (ret < 0) {
-    printf("failed to ioctl due to %s.\n", strerror(errno));
     return ret;
   }
+  delayed_rsp_id_value = ret;
 
-  ptr = (value - ptr) & 0xffff;
-  printf("loop = %04x\n", ptr);
+  loop_count = (value - delayed_rsp_id_value) & 0xffff;
+  printf("loop = %04x\n", loop_count);
 
-  params.size = 2;
-  for (i = 0; i < ptr; i++) {
-    params.rsp_ptr = (void*)address;
-    params.num_bytes_ptr = &num;
-    ret = ioctl(fd, DIAG_IOCTL_GET_DELAYED_RSP_ID, &params);
+  for (i = 0; i < loop_count; i++) {
+    struct diagpkt_delay_params params;
+    params.rsp_ptr = (void *)address;
+    params.size = 2;
+
+    ret = send_delay_params(fd, &params);
     if (ret < 0) {
-      printf("failed to ioctl due to %s.\n", strerror(errno));
       return ret;
     }
   }
