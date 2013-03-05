@@ -42,10 +42,16 @@ struct diagpkt_delay_params {
 };
 
 static int
-send_delay_params(int fd, struct diagpkt_delay_params *params)
+send_delay_params(int fd, void *target_address, void *stored_for_written_bytes)
 {
   int ret;
-  ret = ioctl(fd, DIAG_IOCTL_GET_DELAYED_RSP_ID, params);
+  struct diagpkt_delay_params params;
+
+  params.rsp_ptr = target_address;
+  params.size = 2;
+  params.num_bytes_ptr = stored_for_written_bytes;
+
+  ret = ioctl(fd, DIAG_IOCTL_GET_DELAYED_RSP_ID, &params);
   if (ret < 0) {
     printf("failed to ioctl due to %s.\n", strerror(errno));
   }
@@ -55,13 +61,9 @@ send_delay_params(int fd, struct diagpkt_delay_params *params)
 static int
 reset_delayed_rsp_id(int fd, unsigned int delayed_rsp_id_address)
 {
-  struct diagpkt_delay_params params;
-  uint16_t place_holder;
-  params.rsp_ptr = &place_holder;
-  params.size = 2;
-  params.num_bytes_ptr = (void *)delayed_rsp_id_address;
+  uint16_t unused;
 
-  return send_delay_params(fd, &params);
+  return send_delay_params(fd, &unused, (void *)delayed_rsp_id_address);
 }
 
 static int
@@ -69,14 +71,9 @@ confirm_delayed_rsp_id(int fd)
 {
   int ret;
   uint16_t delayed_rsp_id = 0;
-  int place_holder;
-  struct diagpkt_delay_params params;
+  int unused;
 
-  params.rsp_ptr = &delayed_rsp_id;
-  params.size = 2;
-  params.num_bytes_ptr = &place_holder;
-
-  ret = send_delay_params(fd, &params);
+  ret = send_delay_params(fd, &delayed_rsp_id, &unused);
   if (ret < 0) {
     return ret;
   }
@@ -106,13 +103,9 @@ inject_value (unsigned int address, int value,
   printf("loop = %04x\n", loop_count);
 
   for (i = 0; i < loop_count; i++) {
-    struct diagpkt_delay_params params;
-    int place_holder;
-    params.rsp_ptr = (void *)address;
-    params.size = 2;
-    params.num_bytes_ptr = &place_holder;
+    int unused;
 
-    ret = send_delay_params(fd, &params);
+    ret = send_delay_params(fd, (void *)address, &unused);
     if (ret < 0) {
       return ret;
     }
