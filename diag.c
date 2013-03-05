@@ -81,7 +81,7 @@ confirm_delayed_rsp_id(int fd)
 }
 
 static int
-inject_value (unsigned int address, int value,
+inject_value (unsigned int target_address, int value,
               int fd, unsigned int delayed_rsp_id_address)
 {
   uint16_t delayed_rsp_id_value = 0;
@@ -105,7 +105,7 @@ inject_value (unsigned int address, int value,
   for (i = 0; i < loop_count; i++) {
     int unused;
 
-    ret = send_delay_params(fd, (void *)address, &unused);
+    ret = send_delay_params(fd, (void *)target_address, &unused);
     if (ret < 0) {
       return ret;
     }
