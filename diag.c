@@ -56,6 +56,8 @@ static int
 reset_delayed_rsp_id(int fd, unsigned int delayed_rsp_id_address)
 {
   struct diagpkt_delay_params params;
+  uint16_t place_holder;
+  params.rsp_ptr = &place_holder;
   params.size = 2;
   params.num_bytes_ptr = (void *)delayed_rsp_id_address;
 
@@ -66,11 +68,13 @@ static int
 confirm_delayed_rsp_id(int fd)
 {
   int ret;
-  int delayed_rsp_id;
+  uint16_t delayed_rsp_id = 0;
+  int place_holder;
   struct diagpkt_delay_params params;
 
   params.rsp_ptr = &delayed_rsp_id;
   params.size = 2;
+  params.num_bytes_ptr = &place_holder;
 
   ret = send_delay_params(fd, &params);
   if (ret < 0) {
@@ -83,9 +87,9 @@ static int
 inject_value (unsigned int address, int value,
               int fd, unsigned int delayed_rsp_id_address)
 {
-  uint16_t delayed_rsp_id_value;
+  uint16_t delayed_rsp_id_value = 0;
   int i, loop_count;
-  int ret;
+  int ret = 0;
 
   ret = reset_delayed_rsp_id(fd, delayed_rsp_id_address);
   if (ret < 0) {
@@ -103,8 +107,10 @@ inject_value (unsigned int address, int value,
 
   for (i = 0; i < loop_count; i++) {
     struct diagpkt_delay_params params;
+    int place_holder;
     params.rsp_ptr = (void *)address;
     params.size = 2;
+    params.num_bytes_ptr = &place_holder;
 
     ret = send_delay_params(fd, &params);
     if (ret < 0) {
