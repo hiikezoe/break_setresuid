@@ -42,7 +42,7 @@ typedef struct _supported_device {
 } supported_device;
 
 supported_device supported_devices[] = {
-  { "F-03D", "V24R33Cc", 0xc00e83cc, 0xc0777dd0 },
+  { "F-03D", "V24R33Cc", 0xc00e83ce, 0xc0777dd0 },
   { "F-12C", "V21",      0xc00e5ad2, 0xc075aca4 }
 };
 
