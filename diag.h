@@ -25,6 +25,12 @@ struct values {
   unsigned short value;
 };
 
+typedef enum {
+  UNSUPPORTED = -1,
+  F03D_V24,
+  F12C_V21
+} DeviceId;
+
 bool inject(struct values *data, int data_length);
 
 #endif /* DIAG_H */
