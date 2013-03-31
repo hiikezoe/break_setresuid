@@ -125,7 +125,7 @@ inject_value (unsigned int target_address, int value,
 }
 
 bool
-inject(struct values *data, int data_length)
+diag_inject(struct values *data, int data_length)
 {
   int fd;
   int i;

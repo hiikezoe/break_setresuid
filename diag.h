@@ -25,7 +25,7 @@ struct values {
   unsigned short value;
 };
 
-bool inject(struct values *data, int data_length);
+bool diag_inject(struct values *data, int data_length);
 
 #endif /* DIAG_H */
 /*
