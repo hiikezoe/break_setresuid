@@ -23,15 +23,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <sys/system_properties.h>
 
 #include "diag.h"
-
-typedef struct _supported_device {
-  DeviceId device;
-  const char *model;
-  const char *build_id;
-} supported_device;
+#include "device.h"
 
 typedef struct {
   DeviceId device;
@@ -43,40 +37,15 @@ static sys_setresuid_check_addresses sys_setresuid_check_address_list[] = {
   { F12C_V21, 0xc00e5ad2 }
 };
 
-static supported_device supported_devices[] = {
-  { F03D_V24, "F-03D", "V24R33Cc" },
-  { F12C_V21, "F-12C", "V21"      }
-};
-
-static int n_supported_devices = sizeof(supported_devices) / sizeof(supported_devices[0]);
-
-static DeviceId
-detect_device(void)
-{
-  int i;
-  char model[PROP_VALUE_MAX];
-  char build_id[PROP_VALUE_MAX];
-
-  __system_property_get("ro.product.model", model);
-  __system_property_get("ro.build.display.id", build_id);
-
-  for (i = 0; i < n_supported_devices; i++) {
-    if (!strcmp(model, supported_devices[i].model) &&
-        !strcmp(build_id, supported_devices[i].build_id)) {
-      return supported_devices[i].device;
-    }
-  }
-  printf("%s (%s) is not supported.\n", model, build_id);
-
-  return UNSUPPORTED;
-}
+static int n_sys_set_resuid_check_address_list =
+  sizeof(sys_setresuid_check_address_list) / sizeof(sys_setresuid_check_address_list[0]);
 
 static unsigned long int
 get_sys_setresuid_check_addresses(DeviceId device)
 {
   int i;
 
-  for (i = 0; i < n_supported_devices; i++) {
+  for (i = 0; i < n_sys_set_resuid_check_address_list; i++) {
     if (sys_setresuid_check_address_list[i].device == device) {
       return sys_setresuid_check_address_list[i].address;
     }

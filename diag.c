@@ -20,40 +20,32 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <fcntl.h>
-#include <sys/system_properties.h>
 
 #include "diag.h"
+#include "device.h"
 
 typedef struct _supported_device {
-  const char *device;
-  const char *build_id;
+  DeviceId device;
   unsigned long int delayed_rsp_id_address;
 } supported_device;
 
 static supported_device supported_devices[] = {
-  { "F-03D", "V24R33Cc", 0xc0777dd0 },
-  { "F-12C", "V21",      0xc075aca4 }
+  { F03D_V24, 0xc0777dd0 },
+  { F12C_V21, 0xc075aca4 }
 };
 
 static int n_supported_devices = sizeof(supported_devices) / sizeof(supported_devices[0]);
 
 static void *
-detect_delayed_rsp_id_addresses(void)
+get_delayed_rsp_id_addresses(DeviceId device)
 {
   int i;
-  char device[PROP_VALUE_MAX];
-  char build_id[PROP_VALUE_MAX];
-
-  __system_property_get("ro.product.model", device);
-  __system_property_get("ro.build.display.id", build_id);
 
   for (i = 0; i < n_supported_devices; i++) {
-    if (!strcmp(device, supported_devices[i].device) &&
-        !strcmp(build_id, supported_devices[i].build_id)) {
+    if (supported_devices[i].device == device) {
       return (void*)supported_devices[i].delayed_rsp_id_address;
     }
   }
-  printf("%s (%s) is not supported.\n", device, build_id);
 
   return NULL;
 }
@@ -138,8 +130,14 @@ inject(struct values *data, int data_length)
   int fd;
   int i;
   void *delayed_rsp_id_address;
+  DeviceId device;
 
-  delayed_rsp_id_address = detect_delayed_rsp_id_addresses();
+  device = detect_device();
+  if (device == UNSUPPORTED) {
+    return false;
+  }
+
+  delayed_rsp_id_address = get_delayed_rsp_id_addresses(device);
   if (!delayed_rsp_id_address) {
     return false;
   }

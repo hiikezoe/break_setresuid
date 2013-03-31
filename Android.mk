@@ -4,6 +4,7 @@ include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES := \
   main.c           \
+  device.c         \
   diag.c
 
 LOCAL_MODULE := break_setresuid
