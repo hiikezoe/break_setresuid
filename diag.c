@@ -1,30 +1,19 @@
 /*
- * Copyright (c) 2013 Hiroyuki Ikezoe
- * All rights reserved.
+ * Copyright (C) 2013 Hiroyuki Ikezoe
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR(S) ``AS IS'' AND ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE AUTHOR(S) BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-/*
- * Based on htcj_butterflay_diaggetroot.zip
- * <https://docs.google.com/file/d/0B8LDObFOpzZqQzducmxjRExXNnM/edit?pli=1>
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
  */
 #include <stdio.h>
 #include <unistd.h>
@@ -67,7 +56,7 @@ reset_delayed_rsp_id(int fd, unsigned int delayed_rsp_id_address)
 }
 
 static int
-confirm_delayed_rsp_id(int fd)
+get_current_delayed_rsp_id(int fd)
 {
   int ret;
   uint16_t delayed_rsp_id = 0;
@@ -93,18 +82,16 @@ inject_value (unsigned int target_address, int value,
     return ret;
   }
 
-  ret = confirm_delayed_rsp_id(fd);
+  ret = get_current_delayed_rsp_id(fd);
   if (ret < 0) {
     return ret;
   }
   delayed_rsp_id_value = ret;
 
   loop_count = (value - delayed_rsp_id_value) & 0xffff;
-  printf("loop = %04x\n", loop_count);
 
   for (i = 0; i < loop_count; i++) {
     int unused;
-
     ret = send_delay_params(fd, (void *)target_address, &unused);
     if (ret < 0) {
       return ret;
@@ -114,19 +101,27 @@ inject_value (unsigned int target_address, int value,
 }
 
 int
-inject_with_file_descriptor (struct values *data, int data_length,
-                             unsigned int delayed_rsp_id_address, int fd)
+inject(struct values *data, int data_length, unsigned int delayed_rsp_id_address)
 {
+  int fd;
   int i;
+
+  fd = open("/dev/diag", O_RDWR);
+  if (fd < 0) {
+    printf("failed to open /dev/diag due to %s.", strerror(errno));
+    return fd;
+  }
 
   for (i = 0; i < data_length; i++) {
     int ret;
-    printf("data[%d] addr=0x%08x value=%04x\n",
-           i, data[i].address, data[i].value);
     ret = inject_value(data[i].address, data[i].value, fd, delayed_rsp_id_address);
-    if (ret < 0)
+    if (ret < 0) {
+      close(fd);
       return ret;
+    }
   }
+
+  close(fd);
 
   return 0;
 }

