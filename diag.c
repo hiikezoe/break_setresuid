@@ -104,22 +104,20 @@ get_current_delayed_rsp_id(int fd)
   return delayed_rsp_id;
 }
 
-static int
+static bool
 inject_value (unsigned int target_address, int value,
               int fd, void *delayed_rsp_id_address)
 {
   uint16_t delayed_rsp_id_value = 0;
-  int i, loop_count;
-  int ret = 0;
+  int i, loop_count, ret;
 
-  ret = reset_delayed_rsp_id(fd, delayed_rsp_id_address);
-  if (ret < 0) {
-    return ret;
+  if (reset_delayed_rsp_id(fd, delayed_rsp_id_address) < 0) {
+    return false;
   }
 
   ret = get_current_delayed_rsp_id(fd);
   if (ret < 0) {
-    return ret;
+    return false;
   }
   delayed_rsp_id_value = ret;
 
@@ -127,15 +125,14 @@ inject_value (unsigned int target_address, int value,
 
   for (i = 0; i < loop_count; i++) {
     int unused;
-    ret = send_delay_params(fd, (void *)target_address, &unused);
-    if (ret < 0) {
-      return ret;
+    if (send_delay_params(fd, (void *)target_address, &unused) < 0) {
+      return false;
     }
   }
-  return 0;
+  return true;
 }
 
-int
+bool
 inject(struct values *data, int data_length)
 {
   int fd;
@@ -144,27 +141,25 @@ inject(struct values *data, int data_length)
 
   delayed_rsp_id_address = detect_delayed_rsp_id_addresses();
   if (!delayed_rsp_id_address) {
-    return -1;
+    return false;
   }
 
   fd = open("/dev/diag", O_RDWR);
   if (fd < 0) {
     printf("failed to open /dev/diag due to %s.", strerror(errno));
-    return fd;
+    return false;
   }
 
   for (i = 0; i < data_length; i++) {
-    int ret;
-    ret = inject_value(data[i].address, data[i].value, fd, delayed_rsp_id_address);
-    if (ret < 0) {
+    if (!inject_value(data[i].address, data[i].value, fd, delayed_rsp_id_address)) {
       close(fd);
-      return ret;
+      return false;
     }
   }
 
   close(fd);
 
-  return 0;
+  return true;
 }
 
 /*

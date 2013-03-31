@@ -70,7 +70,7 @@ inject_command(const char *command,
   injection_data.address = sys_setresuid_check_address;
   injection_data.value = command[0] | (command[1] << 8);
 
-  return inject(&injection_data, 1) == 0;
+  return inject(&injection_data, 1);
 }
 
 static bool

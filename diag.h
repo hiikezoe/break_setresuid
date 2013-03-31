@@ -18,6 +18,8 @@
 #ifndef DIAG_H
 #define DIAG_H
 
+#include <stdbool.h>
+
 struct values {
   unsigned int address;
   unsigned short value;
@@ -29,7 +31,7 @@ typedef struct _diag_injection_addresses {
 } diag_injection_addresses;
 
 //int inject(struct values *data, int data_length, unsigned int delayed_rsp_id_address);
-int inject(struct values *data, int data_length);
+bool inject(struct values *data, int data_length);
 
 #endif /* DIAG_H */
 /*
