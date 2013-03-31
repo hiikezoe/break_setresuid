@@ -25,12 +25,6 @@ struct values {
   unsigned short value;
 };
 
-typedef struct _diag_injection_addresses {
-  unsigned long int target_address;
-  unsigned long int delayed_rsp_id_address;
-} diag_injection_addresses;
-
-//int inject(struct values *data, int data_length, unsigned int delayed_rsp_id_address);
 bool inject(struct values *data, int data_length);
 
 #endif /* DIAG_H */
