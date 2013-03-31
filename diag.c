@@ -20,8 +20,43 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <sys/system_properties.h>
 
 #include "diag.h"
+
+typedef struct _supported_device {
+  const char *device;
+  const char *build_id;
+  unsigned long int delayed_rsp_id_address;
+} supported_device;
+
+static supported_device supported_devices[] = {
+  { "F-03D", "V24R33Cc", 0xc0777dd0 },
+  { "F-12C", "V21",      0xc075aca4 }
+};
+
+static int n_supported_devices = sizeof(supported_devices) / sizeof(supported_devices[0]);
+
+static void *
+detect_delayed_rsp_id_addresses(void)
+{
+  int i;
+  char device[PROP_VALUE_MAX];
+  char build_id[PROP_VALUE_MAX];
+
+  __system_property_get("ro.product.model", device);
+  __system_property_get("ro.build.display.id", build_id);
+
+  for (i = 0; i < n_supported_devices; i++) {
+    if (!strcmp(device, supported_devices[i].device) &&
+        !strcmp(build_id, supported_devices[i].build_id)) {
+      return (void*)supported_devices[i].delayed_rsp_id_address;
+    }
+  }
+  printf("%s (%s) is not supported.\n", device, build_id);
+
+  return NULL;
+}
 
 #define DIAG_IOCTL_GET_DELAYED_RSP_ID   8
 struct diagpkt_delay_params {
@@ -48,11 +83,11 @@ send_delay_params(int fd, void *target_address, void *stored_for_written_bytes)
 }
 
 static int
-reset_delayed_rsp_id(int fd, unsigned int delayed_rsp_id_address)
+reset_delayed_rsp_id(int fd, void *delayed_rsp_id_address)
 {
   uint16_t unused;
 
-  return send_delay_params(fd, &unused, (void *)delayed_rsp_id_address);
+  return send_delay_params(fd, &unused, delayed_rsp_id_address);
 }
 
 static int
@@ -71,7 +106,7 @@ get_current_delayed_rsp_id(int fd)
 
 static int
 inject_value (unsigned int target_address, int value,
-              int fd, unsigned int delayed_rsp_id_address)
+              int fd, void *delayed_rsp_id_address)
 {
   uint16_t delayed_rsp_id_value = 0;
   int i, loop_count;
@@ -101,10 +136,16 @@ inject_value (unsigned int target_address, int value,
 }
 
 int
-inject(struct values *data, int data_length, unsigned int delayed_rsp_id_address)
+inject(struct values *data, int data_length)
 {
   int fd;
   int i;
+  void *delayed_rsp_id_address;
+
+  delayed_rsp_id_address = detect_delayed_rsp_id_addresses();
+  if (!delayed_rsp_id_address) {
+    return -1;
+  }
 
   fd = open("/dev/diag", O_RDWR);
   if (fd < 0) {

