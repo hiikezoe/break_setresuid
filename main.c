@@ -35,7 +35,8 @@ typedef struct _supported_device {
 
 static supported_device supported_devices[] = {
   { "F-03D",  "V24R33Cc", 0xc00e83ce },
-  { "F-12C",  "V21"     , 0xc00e5ad2 }
+  { "F-12C",  "V21"     , 0xc00e5ad2 },
+  { "URBANO PROGRESSO", "010.0.3000",   0xC0176D82 },
 };
 
 static int n_supported_devices = sizeof(supported_devices) / sizeof(supported_devices[0]);
