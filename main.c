@@ -43,6 +43,32 @@ static supported_device supported_devices[] = {
 static int n_supported_devices = sizeof(supported_devices) / sizeof(supported_devices[0]);
 
 static unsigned long int
+get_sys_setresuid_check_address_from_kallayms(void)
+{
+  FILE *fp;
+  char function[BUFSIZ];
+  char symbol;
+  uint32_t address;
+  int ret;
+
+  fp = fopen("/proc/kallsyms", "r");
+  if (!fp) {
+    printf("Failed to open /proc/kallsyms due to %s.", strerror(errno));
+    return 0;
+  }
+
+  while((ret = fscanf(fp, "%x %c %s", &address, &symbol, function)) != EOF) {
+    if (!strcmp(function, "sys_setresuid")) {
+      fclose(fp);
+      return address + 0x42;
+    }
+  }
+  fclose(fp);
+
+  return 0;
+}
+
+static unsigned long int
 get_sys_setresuid_check_addresses(void)
 {
   int i;
@@ -60,8 +86,9 @@ get_sys_setresuid_check_addresses(void)
   }
 
   printf("%s (%s) is not supported.\n", device, build_id);
+  printf("Attempting to detect from /proc/kallsyms...\n");
 
-  return 0;
+  return get_sys_setresuid_check_address_from_kallayms();
 }
 
 static bool
