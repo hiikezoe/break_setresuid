@@ -30,7 +30,7 @@
 typedef struct _supported_device {
   const char *device;
   const char *build_id;
-  unsigned long int set_sysresuid_check_address;
+  unsigned long int set_sysresuid_check_address; /* sys_setresuid + 0x42 */
 } supported_device;
 
 static supported_device supported_devices[] = {
