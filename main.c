@@ -39,7 +39,7 @@ static supported_device supported_devices[] = {
   { "F-12C",            "V21"     ,   0xc00e5ad2 },
   { "IS11N",            "GRJ90"   ,   0xc00f0a46 },
   { "IS17SH",           "01.00.03" ,  0xc01b82e6 },
-  { "URBANO PROGRESSO", "010.0.3000", 0xC0176D82 },
+  { "URBANO PROGRESSO", "010.0.3000", 0xc0176d82 },
 };
 
 static int n_supported_devices = sizeof(supported_devices) / sizeof(supported_devices[0]);
