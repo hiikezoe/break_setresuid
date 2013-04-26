@@ -35,6 +35,7 @@ typedef struct _supported_device {
 
 static supported_device supported_devices[] = {
   { "F-03D",            "V24R33Cc"  , 0xc00e83ce },
+  { "F-11D",            "V21R36A"   , 0xc00fda52 },
   { "F-11D",            "V24R40A"   , 0xc00fda4e },
   { "F-12C",            "V21"       , 0xc00e5ad2 },
   { "IS11N",            "GRJ90"     , 0xc00f0a46 },
