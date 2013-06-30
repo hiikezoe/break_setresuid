@@ -2,7 +2,9 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
-LOCAL_SRC_FILES := main.c
+LOCAL_SRC_FILES := \
+  main.c \
+  perf_swevent.c
 
 LOCAL_MODULE := break_setresuid
 
