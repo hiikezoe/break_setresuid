@@ -38,7 +38,7 @@ static supported_device supported_devices[] = {
   { "F-03D",            "V24R33Cc"  , 0xc00e838c },
   { "F-11D",            "V21R36A"   , 0xc00fda10 },
   { "F-11D",            "V24R40A"   , 0xc00fda0c },
-  { "F-11D",            "V26R42B"   , 0xc00fdac8 },
+  { "F-11D",            "V26R42B"   , 0xc00fd9c8 },
   { "F-12C",            "V21"       , 0xc00e5a90 },
   { "IS11N",            "GRJ90"     , 0xc00f0a04 },
   { "IS17SH",           "01.00.03"  , 0xc01b82a4 },
