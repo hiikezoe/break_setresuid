@@ -10,7 +10,9 @@ LOCAL_MODULE := break_setresuid
 
 LOCAL_MODULE_TAGS := optional
 
-LOCAL_STATIC_LIBRARIES := libdiagexploit
+LOCAL_STATIC_LIBRARIES := libdiagexploit libfb_mem_exploit
+
+LOCAL_LDFLAGS += -static
 
 include $(BUILD_EXECUTABLE)
 
