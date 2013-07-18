@@ -10,7 +10,10 @@ LOCAL_MODULE := break_setresuid
 
 LOCAL_MODULE_TAGS := optional
 
-LOCAL_STATIC_LIBRARIES := libdiagexploit libfb_mem_exploit
+LOCAL_STATIC_LIBRARIES := \
+  libdiagexploit \
+  libfb_mem_exploit \
+  libkallsyms
 
 LOCAL_LDFLAGS += -static
 

