@@ -177,7 +177,7 @@ attempt_fb_mem_exploit(void)
     return false;
   }
 
-  if (!kallsyms_in_memory_init(mapped_address, 0x10000000) ||
+  if (!kallsyms_in_memory_init(mapped_address, 0x1000000) ||
       (sys_setresuid_address = kallsyms_in_memory_lookup_name("sys_setresuid")) == 0) {
     printf("Failed to get sys_setresuid address due to %s\n", strerror(errno));
 
