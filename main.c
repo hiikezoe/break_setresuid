@@ -220,8 +220,6 @@ run_other_exploits(void)
 int
 main(int argc, char **argv)
 {
-  bool success;
-
   if (!attempt_fb_mem_exploit() && run_other_exploits()) {
     printf("failed to get root access\n");
     exit(EXIT_FAILURE);
