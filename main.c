@@ -47,7 +47,6 @@ static supported_device supported_devices[] = {
   { "IS17SH",           "01.00.03"  , 0xc01b82a4 },
   { "ISW11K",           "145.0.0002", 0xc010ae18 },
   { "URBANO PROGRESSO", "010.0.3000", 0xc0176d40 },
-  { "SCL21",            "IMM76D.SCL21KDALJD", 0xc0175db4 },
 };
 
 static int n_supported_devices = sizeof(supported_devices) / sizeof(supported_devices[0]);
