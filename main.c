@@ -210,8 +210,9 @@ run_other_exploits(void)
     return false;
   }
 
-  if (attempt_perf_swevent_exploit(sys_setresuid_address))
+  if (attempt_perf_swevent_exploit(sys_setresuid_address)) {
     return true;
+  }
 
   return attempt_diag_exploit(sys_setresuid_address);
 }
