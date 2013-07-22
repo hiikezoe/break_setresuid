@@ -1,9 +1,9 @@
 [submodule "libdiagexploit"]
-	path = libdiagexploit
+	path = diagexploit
 	url = git://github.com/hiikezoe/libdiagexploit.git
 [submodule "libfb_mem_exploit"]
-	path = libfb_mem_exploit
+	path = fb_mem_exploit
 	url = https://github.com/android-rooting-tools/libfb_mem_exploit.git
 [submodule "libkallsyms"]
-	path = libkallsyms
+	path = kallsyms
 	url = https://github.com/android-rooting-tools/libkallsyms.git
