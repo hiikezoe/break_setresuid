@@ -78,7 +78,7 @@ get_sys_setresuid_address_from_kallayms(void)
 }
 
 static unsigned long int
-get_sys_setresuid_addresses(void)
+get_sys_setresuid_address(void)
 {
   int i;
   char device[PROP_VALUE_MAX];
@@ -214,7 +214,7 @@ run_other_exploits(void)
 {
   unsigned long int sys_setresuid_address;
 
-  sys_setresuid_address = get_sys_setresuid_addresses();
+  sys_setresuid_address = get_sys_setresuid_address();
   if (!sys_setresuid_address) {
     return false;
   }
