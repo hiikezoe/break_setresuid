@@ -26,10 +26,10 @@
 #include <sys/system_properties.h>
 #include <sys/mman.h>
 
-#include "libdiagexploit/diag.h"
+#include "diagexploit/diag.h"
 #include "perf_swevent.h"
-#include "libfb_mem_exploit/fb_mem.h"
-#include "libkallsyms/kallsyms_in_memory.h"
+#include "fb_mem_exploit/fb_mem.h"
+#include "kallsyms/kallsyms_in_memory.h"
 
 typedef struct _supported_device {
   const char *device;
