@@ -6,18 +6,17 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <errno.h>
-#include <sys/system_properties.h>
+#include <device_database.h>
 
 typedef struct _supported_device {
-  const char *device;
-  const char *build_id;
+  device_id_t device_id;
   unsigned long int perf_swevent_enabled_address;
 } supported_device;
 
 static supported_device supported_devices[] = {
-  { "F-11D",            "V24R40A"   , 0xc104cf1c },
-  { "IS17SH",           "01.00.04"  , 0xc0ecbebc },
-  { "URBANO PROGRESSO", "010.0.3000", 0xc0db6244 },
+  { DEVICE_F11D_V24R40A,      0xc104cf1c },
+  { DEVICE_IS17SH_01_00_04,   0xc0ecbebc },
+  { DEVICE_ISW12K_010_0_3000, 0xc0db6244 },
 };
 
 static int n_supported_devices = sizeof(supported_devices) / sizeof(supported_devices[0]);
@@ -26,20 +25,17 @@ static unsigned long int
 get_perf_swevent_enabled_address(void)
 {
   int i;
-  char device[PROP_VALUE_MAX];
-  char build_id[PROP_VALUE_MAX];
+  device_id_t device_id;
 
-  __system_property_get("ro.product.model", device);
-  __system_property_get("ro.build.display.id", build_id);
+  device_id = detect_device();
 
   for (i = 0; i < n_supported_devices; i++) {
-    if (!strcmp(device, supported_devices[i].device) &&
-        !strcmp(build_id, supported_devices[i].build_id)) {
+    if (supported_devices[i].device_id == device_id) {
       return supported_devices[i].perf_swevent_enabled_address;
     }
   }
 
-  printf("%s (%s) is not supported.\n", device, build_id);
+  print_reason_device_not_supported();
 
   return 0;
 }
