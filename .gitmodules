@@ -7,3 +7,6 @@
 [submodule "libkallsyms"]
 	path = kallsyms
 	url = https://github.com/android-rooting-tools/libkallsyms.git
+[submodule "device_database"]
+	path = device_database
+	url = https://github.com/android-rooting-tools/android_device_database

@@ -23,8 +23,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <sys/system_properties.h>
 #include <sys/mman.h>
+#include <device_database.h>
 
 #include "diagexploit/diag.h"
 #include "perf_swevent.h"
@@ -32,21 +32,20 @@
 #include "kallsyms/kallsyms_in_memory.h"
 
 typedef struct _supported_device {
-  const char *device;
-  const char *build_id;
+  device_id_t device_id;
   unsigned long int set_sysresuid_address;
 } supported_device;
 
 static supported_device supported_devices[] = {
-  { "F-03D",            "V24R33Cc"  , 0xc00e838c },
-  { "F-11D",            "V21R36A"   , 0xc00fda10 },
-  { "F-11D",            "V24R40A"   , 0xc00fda0c },
-  { "F-11D",            "V26R42B"   , 0xc00fd9c8 },
-  { "F-12C",            "V21"       , 0xc00e5a90 },
-  { "IS11N",            "GRJ90"     , 0xc00f0a04 },
-  { "IS17SH",           "01.00.03"  , 0xc01b82a4 },
-  { "ISW11K",           "145.0.0002", 0xc010ae18 },
-  { "URBANO PROGRESSO", "010.0.3000", 0xc0176d40 },
+  { DEVICE_F03D_V24R33Cc,      0xc00e838c },
+  { DEVICE_F11D_V21R36A,       0xc00fda10 },
+  { DEVICE_F11D_V24R40A,       0xc00fda0c },
+  { DEVICE_F11D_V26R42B,       0xc00fd9c8 },
+  { DEVICE_F12C_V21,           0xc00e5a90 },
+  { DEVICE_IS11N_GRJ90,        0xc00f0a04 },
+  { DEVICE_IS17SH_01_00_03,    0xc01b82a4 },
+  { DEVICE_ISW11K_145_0_0002,  0xc010ae18 },
+  { DEVICE_ISW12K_010_0_3000,  0xc0176d40 },
 };
 
 static int n_supported_devices = sizeof(supported_devices) / sizeof(supported_devices[0]);
@@ -81,20 +80,17 @@ static unsigned long int
 get_sys_setresuid_address(void)
 {
   int i;
-  char device[PROP_VALUE_MAX];
-  char build_id[PROP_VALUE_MAX];
+  device_id_t device_id;
 
-  __system_property_get("ro.product.model", device);
-  __system_property_get("ro.build.display.id", build_id);
+  device_id = detect_device();
 
   for (i = 0; i < n_supported_devices; i++) {
-    if (!strcmp(device, supported_devices[i].device) &&
-        !strcmp(build_id, supported_devices[i].build_id)) {
+    if (supported_devices[i].device_id == device_id) {
       return supported_devices[i].set_sysresuid_address;
     }
   }
 
-  printf("%s (%s) is not supported.\n", device, build_id);
+  print_reason_device_not_supported();
   printf("Attempting to detect from /proc/kallsyms...\n");
 
   return get_sys_setresuid_address_from_kallayms();
